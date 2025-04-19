@@ -12,7 +12,6 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { backendUrl } from "../../lib/apiUrl";
 
-// Define types for load and documents
 interface Load {
   id_load: number;
   load_number: string;
@@ -22,7 +21,7 @@ interface Load {
   time_delivery: string;
   broker_name: string;
   status: string;
-  documents?: string[]; // Initially empty or with mock data
+  documents?: string[];
 }
 
 interface Document {
@@ -39,7 +38,33 @@ const DeliveredLoads: React.FC = () => {
     [key: number]: Document | null;
   }>({});
 
-  // Fetch delivered loads
+  const handleDownload = async (fileUrl: string, fileName: string) => {
+    if (!fileUrl) return;
+
+    try {
+      const token = localStorage.getItem("driverToken");
+      const response = await axios.get(fileUrl, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        responseType: "blob",
+      });
+
+      const blob = new Blob([response.data]);
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.setAttribute("download", fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error("Error downloading file:", error);
+      alert("Failed to download file");
+    }
+  };
+
   useEffect(() => {
     const fetchDeliveredLoads = async () => {
       setLoading(true);
@@ -56,7 +81,6 @@ const DeliveredLoads: React.FC = () => {
             },
           }
         );
-        console.log("response", response);
         if (response.data && response.data.length > 0) {
           setLoads(response.data);
         } else {
@@ -72,7 +96,6 @@ const DeliveredLoads: React.FC = () => {
     fetchDeliveredLoads();
   }, []);
 
-  // Fetch documents for a specific load
   const fetchDocuments = async (loadId: number) => {
     try {
       const token = localStorage.getItem("driverToken");
@@ -82,7 +105,6 @@ const DeliveredLoads: React.FC = () => {
         },
       });
       if (response.data) {
-        // Assuming the API returns an array of documents
         const documents = response.data.reduce(
           (acc: Document, current: any) => {
             acc.bol_document = current.bol_document || "";
@@ -215,7 +237,7 @@ const DeliveredLoads: React.FC = () => {
                   onClick={() => {
                     if (selectedLoad !== load.id_load) {
                       setSelectedLoad(load.id_load);
-                      fetchDocuments(load.id_load); // Fetch documents when selected
+                      fetchDocuments(load.id_load);
                     } else {
                       setSelectedLoad(null);
                     }
@@ -249,7 +271,20 @@ const DeliveredLoads: React.FC = () => {
                                 <span className="text-sm text-gray-700">
                                   {loadDocuments[load.id_load]?.bol_document}
                                 </span>
-                                <button className="ml-auto text-xs text-teal-600 hover:text-teal-800 font-medium">
+                                <button
+                                  onClick={() =>
+                                    handleDownload(
+                                      loadDocuments[load.id_load]
+                                        ?.bol_document || "",
+                                      `BOL_${load.load_number}.${loadDocuments[
+                                        load.id_load
+                                      ]?.bol_document
+                                        ?.split(".")
+                                        .pop()}`
+                                    )
+                                  }
+                                  className="ml-auto text-xs text-teal-600 hover:text-teal-800 font-medium"
+                                >
                                   Download
                                 </button>
                               </div>
@@ -260,7 +295,22 @@ const DeliveredLoads: React.FC = () => {
                                 <span className="text-sm text-gray-700">
                                   {loadDocuments[load.id_load]?.lumper_document}
                                 </span>
-                                <button className="ml-auto text-xs text-teal-600 hover:text-teal-800 font-medium">
+                                <button
+                                  onClick={() =>
+                                    handleDownload(
+                                      loadDocuments[load.id_load]
+                                        ?.lumper_document || "",
+                                      `Lumper_${
+                                        load.load_number
+                                      }.${loadDocuments[
+                                        load.id_load
+                                      ]?.lumper_document
+                                        ?.split(".")
+                                        .pop()}`
+                                    )
+                                  }
+                                  className="ml-auto text-xs text-teal-600 hover:text-teal-800 font-medium"
+                                >
                                   Download
                                 </button>
                               </div>

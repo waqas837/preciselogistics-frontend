@@ -108,7 +108,7 @@ const ActiveLoads = () => {
           console.warn("No active load to track");
         }
       } catch (err) {
-        setError("Failed to fetch loads");
+        // setError("Failed to fetch loads");
       } finally {
         setLoading(false);
       }

@@ -102,8 +102,8 @@ const ActiveLoads = () => {
 
         if (activeLoad && driverId && token) {
           // Start location tracking only for the active load
-          // const intervalId = startDriverTracking(Number(driverId), token);
-          // trackingIntervalRef.current = intervalId;
+          const intervalId = startDriverTracking(Number(driverId), token);
+          trackingIntervalRef.current = intervalId;
         } else {
           console.warn("No active load to track");
         }

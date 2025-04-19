@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
 } from "react-router-dom";
+
 import { Truck, Menu, X } from "lucide-react";
 import SignUp from "./components/SignUp";
 import Login from "./components/Login";
@@ -26,6 +27,36 @@ function App() {
   const handleLogin = () => {
     setIsAuthenticated(true);
   };
+  useEffect(() => {
+    function generateCustomUDID(): string {
+      const nav = window.navigator;
+      const screen = window.screen;
+
+      const base = [
+        nav.userAgent,
+        nav.language,
+        screen.height,
+        screen.width,
+        screen.colorDepth,
+        new Date().getTimezoneOffset(),
+      ].join("::");
+
+      const hash = btoa(base)
+        .replace(/[^a-zA-Z0-9]/g, "")
+        .slice(0, 20); // Short & clean
+
+      return hash;
+    }
+
+    // Save & reuse
+    let deviceId = localStorage.getItem("device-uuid");
+    if (!deviceId) {
+      deviceId = generateCustomUDID();
+      localStorage.setItem("device-uuid", deviceId);
+    }
+
+    return () => {};
+  }, []);
 
   const handleLogout = () => {
     setIsAuthenticated(false);

@@ -60,40 +60,79 @@
 // export default useS3Uploader;
 
 import { useState } from "react";
+import { S3Client } from "@aws-sdk/client-s3";
+import { Upload } from "@aws-sdk/lib-storage";
 
 const useS3Uploader = () => {
-  const [files, setFiles] = useState<File[]>([]);
+  const [files, setFiles] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Mock S3 config (no need for real AWS SDK here)
   const S3_BUCKET = "wbucket789";
   const REGION = "eu-north-1";
 
-  // Mock upload function (no real S3 interaction)
-  const uploadImageToS3 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      // Simulating a random delay to mock an actual upload process
-      setTimeout(() => {
-        // Mock file URL generation
-        const fileUrl = `https://${S3_BUCKET}.s3.${REGION}.amazonaws.com/${file.name}?mocked=true`;
-        console.log("✅ Mock upload successful:", fileUrl);
-        resolve(fileUrl);
-      }, 1000); // simulate a 1 second delay for upload
-    });
+  // Create S3 client
+  const s3Client = new S3Client({
+    region: REGION,
+    credentials: {
+      accessKeyId: import.meta.env.VITE_APP_ACCESS_KEY,
+      secretAccessKey: import.meta.env.VITE_APP_SECRET_KEY,
+    },
+  });
+
+  const uploadImageToS3 = async (file: File) => {
+    const params = {
+      Bucket: S3_BUCKET,
+      Key: file.name,
+      Body: file,
+      ContentType: file.type,
+    };
+
+    try {
+      // Use the Upload utility instead of PutObjectCommand
+      // This handles larger files and stream issues in browsers
+      const upload = new Upload({
+        client: s3Client,
+        params: params,
+      });
+
+      await upload.done();
+
+      const fileUrl = `https://${S3_BUCKET}.s3.${REGION}.amazonaws.com/${file.name}`;
+      console.log("✅ File uploaded:", fileUrl);
+      return fileUrl;
+    } catch (err) {
+      console.error("Upload Error:", err);
+      throw err;
+    }
   };
 
   const handleUpload = async () => {
-    const uploadPromises = files.map(uploadImageToS3);
-    const urls = await Promise.all(uploadPromises);
-    setFiles([]); // optional: reset after upload
-    return urls;
+    if (files.length === 0) return [];
+
+    setIsUploading(true);
+    setError(null);
+
+    try {
+      const uploadPromises = files.map(uploadImageToS3);
+      const urls = await Promise.all(uploadPromises);
+      setFiles([]);
+      return urls;
+    } catch (err: any) {
+      setError(err.message || "Upload failed");
+      return [];
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return {
     files,
     setFiles,
     handleUpload,
+    isUploading,
+    error,
   };
 };
 
 export default useS3Uploader;
-

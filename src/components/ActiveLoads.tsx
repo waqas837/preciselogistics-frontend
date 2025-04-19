@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   MapPin,
   DollarSign,
@@ -12,6 +12,9 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { backendUrl } from "../../lib/apiUrl";
+import { startDriverTracking } from "../Functions/startDriverTracking";
+import { stopDriverTracking } from "../Functions/stopDriverTracking";
+import toast, { Toaster } from "react-hot-toast";
 
 interface Load {
   id_load: number;
@@ -27,6 +30,31 @@ interface Load {
   due_amount?: number;
 }
 
+const updateLoadStatus = async (idLoad: any) => {
+  const token = localStorage.getItem("driverToken"); // Replace with actual JWT token
+
+  try {
+    const response = await axios.put(
+      `${backendUrl}/loads/${idLoad}`,
+      {
+        id_status: 3, // Example: status ID to update to
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    console.log("Response:", response.data);
+    toast.success("Load marked as completed.");
+  } catch (error) {
+    toast.error("Internal server error.");
+    console.error("Error:", error);
+  }
+};
+
 const ActiveLoads = () => {
   const [loads, setLoads] = useState<Load[]>([]);
   const [selectedLoad, setSelectedLoad] = useState<Load | null>(null);
@@ -37,12 +65,16 @@ const ActiveLoads = () => {
   const [dueAmount, setDueAmount] = useState<number | null>(null);
   const [rateLoading, setRateLoading] = useState<boolean>(false);
   const navigate = useNavigate();
+  const trackingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+    null
+  );
 
   useEffect(() => {
     const fetchLoads = async () => {
       setLoading(true);
       const token = localStorage.getItem("driverToken");
       const driverId = localStorage.getItem("driverId");
+
       try {
         const response = await axios.get(
           `${backendUrl}/loads-on/drivers/${driverId}`,
@@ -53,11 +85,28 @@ const ActiveLoads = () => {
           }
         );
 
+        // Filter for loads that are either pending or dispatched (active)
         const pendingLoads = response.data.filter(
-          (load: any) => load.status === "pending" || load.status === "Dispatched"
+          (load: any) =>
+            load.status === "Pending" ||
+            load.status === "Dispatched" ||
+            load.status === "In Progress"
+        );
+        setLoads(pendingLoads);
+
+        // ✅ Start tracking only if there is an active load
+        const activeLoad = pendingLoads.find(
+          (load: any) =>
+            load.status === "Dispatched" || load.status === "In Progress"
         );
 
-        setLoads(pendingLoads);
+        if (activeLoad && driverId && token) {
+          // Start location tracking only for the active load
+          // const intervalId = startDriverTracking(Number(driverId), token);
+          // trackingIntervalRef.current = intervalId;
+        } else {
+          console.warn("No active load to track");
+        }
       } catch (err) {
         setError("Failed to fetch loads");
       } finally {
@@ -66,8 +115,15 @@ const ActiveLoads = () => {
     };
 
     fetchLoads();
+
+    // ✅ Stop tracking on unmount
+    return () => {
+      if (trackingIntervalRef.current) {
+        stopDriverTracking(trackingIntervalRef.current);
+      }
+    };
   }, []);
-  
+
   const handleViewRate = async (load: Load) => {
     setSelectedLoad(load);
     setShowModal(true);
@@ -85,7 +141,7 @@ const ActiveLoads = () => {
         }
       );
       console.log("response", response);
-      setDueAmount(response.data.total);
+      setDueAmount(response.data.amount_due);
     } catch (err) {
       console.error("Failed to fetch rate:", err);
     } finally {
@@ -105,6 +161,7 @@ const ActiveLoads = () => {
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
+      <Toaster/>
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">Active Loads</h2>
         <span className="text-sm text-gray-500">
@@ -218,7 +275,12 @@ const ActiveLoads = () => {
               </div>
             </div>
 
-            <button className="mt-6 w-full bg-gradient-to-r from-teal-600 to-emerald-600 text-white py-3 px-4 rounded-xl hover:from-teal-700 hover:to-emerald-700 transition-all shadow-md flex items-center justify-center gap-2">
+            <button
+              onClick={() => {
+                updateLoadStatus(load.id_load);
+              }}
+              className="mt-6 w-full bg-gradient-to-r from-teal-600 to-emerald-600 text-white py-3 px-4 rounded-xl hover:from-teal-700 hover:to-emerald-700 transition-all shadow-md flex items-center justify-center gap-2"
+            >
               <CheckCircle size={18} />
               <span>Mark as Delivered</span>
             </button>

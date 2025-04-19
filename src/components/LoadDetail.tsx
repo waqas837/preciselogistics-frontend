@@ -17,6 +17,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { backendUrl } from "../../lib/apiUrl";
 import axios from "axios";
 import useS3Uploader from "./useS3Upload";
+import toast, { Toaster } from "react-hot-toast";
 
 // Modal component for uploading Bill of Landing
 const UploadBillOfLandingModal = ({
@@ -32,7 +33,7 @@ const UploadBillOfLandingModal = ({
   const [showFile, setshowFile] = useState<any>([]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(e.target.files || []);
+    const selectedFiles: any = Array.from(e.target.files || []);
     setFiles(selectedFiles);
     setshowFile(selectedFiles);
     console.log("selectedFiles", selectedFiles);
@@ -66,8 +67,11 @@ const UploadBillOfLandingModal = ({
 
         const result = await response.json();
         console.log("BOL upload API response:", result);
-
+        if (result.success === "true") {
+          toast.success("Document uploaded successfully.");
+        }
         if (!response.ok || result.success !== "true") {
+          toast.error("Error to upload document.");
           throw new Error("Failed to upload BOL document.");
         }
       }
@@ -80,6 +84,7 @@ const UploadBillOfLandingModal = ({
 
   return (
     <AnimatePresence>
+      <Toaster />
       {showModal && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -225,13 +230,22 @@ const AddLumperModal = ({
       });
 
       if (!response.ok) {
+        toast.error("Error in Submit the data.");
         throw new Error("Failed to update with uploaded URL");
       }
 
       const result = await response.json();
       console.log("API response:", result);
-
-      setShowModal(false);
+      if (result.success === "false") {
+        toast.error("Error in Submit the data.");
+        setShowModal(false);
+        return;
+      }
+      if (result.success === "true") {
+        toast.success("Data submitted successfully.");
+        setShowModal(false);
+        return;
+      }
     } catch (error) {
       console.error("Error during handleSubmit:", error);
     }
@@ -239,6 +253,7 @@ const AddLumperModal = ({
 
   return (
     <AnimatePresence>
+      <Toaster />
       {showModal && (
         <motion.div
           initial={{ opacity: 0 }}

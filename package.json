@@ -10,13 +10,20 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "aws-sdk": "^2.1692.0",
+    "@aws-sdk/client-s3": "^3.787.0",
+    "@aws-sdk/lib-storage": "^3.787.0",
     "axios": "^1.8.4",
+    "buffer": "^6.0.3",
+    "crypto-browserify": "^3.12.1",
     "framer-motion": "^12.6.3",
     "lucide-react": "^0.344.0",
+    "process": "^0.11.10",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.22.3"
+    "react-hot-toast": "^2.5.2",
+    "react-router-dom": "^6.22.3",
+    "stream-browserify": "^3.0.0",
+    "vite-plugin-node-polyfills": "^0.23.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.1",

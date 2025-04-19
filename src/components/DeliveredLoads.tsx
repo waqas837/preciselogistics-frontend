@@ -22,7 +22,12 @@ interface Load {
   time_delivery: string;
   broker_name: string;
   status: string;
-  documents?: string[];
+  documents?: string[]; // Initially empty or with mock data
+}
+
+interface Document {
+  bol_document: string;
+  lumper_document: string;
 }
 
 const DeliveredLoads: React.FC = () => {
@@ -30,30 +35,35 @@ const DeliveredLoads: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [selectedLoad, setSelectedLoad] = useState<number | null>(null);
+  const [loadDocuments, setLoadDocuments] = useState<{
+    [key: number]: Document | null;
+  }>({});
 
+  // Fetch delivered loads
   useEffect(() => {
     const fetchDeliveredLoads = async () => {
       setLoading(true);
-      const token = localStorage.getItem("driverToken");
-      const driverId = localStorage.getItem("driverId");
+      setError("");
 
       try {
-        const response: any = await axios.get<{ data: Load[] }>(
-          `${backendUrl}/loads-on/drivers/${driverId}`,
+        const driverId = localStorage.getItem("driverId");
+        const token = localStorage.getItem("driverToken");
+        const response = await axios.get(
+          `${backendUrl}/loads-delivered/drivers/${driverId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
             },
           }
         );
-
-        const delivered = response.data.filter(
-          (load: Load) => load.status === "delivered"
-        );
-        setLoads(delivered);
-      } catch (err) {
-        console.error(err);
-        setError("Failed to fetch delivered loads");
+        console.log("response", response);
+        if (response.data && response.data.length > 0) {
+          setLoads(response.data);
+        } else {
+          setError("No delivered loads found");
+        }
+      } catch (err: any) {
+        setError("Error fetching data");
       } finally {
         setLoading(false);
       }
@@ -61,6 +71,32 @@ const DeliveredLoads: React.FC = () => {
 
     fetchDeliveredLoads();
   }, []);
+
+  // Fetch documents for a specific load
+  const fetchDocuments = async (loadId: number) => {
+    try {
+      const token = localStorage.getItem("driverToken");
+      const response = await axios.get(`${backendUrl}/load-stops/${loadId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.data) {
+        // Assuming the API returns an array of documents
+        const documents = response.data.reduce(
+          (acc: Document, current: any) => {
+            acc.bol_document = current.bol_document || "";
+            acc.lumper_document = current.lumper_document || "";
+            return acc;
+          },
+          { bol_document: "", lumper_document: "" }
+        );
+        setLoadDocuments((prev) => ({ ...prev, [loadId]: documents }));
+      }
+    } catch (err) {
+      console.error("Error fetching documents:", err);
+    }
+  };
 
   return (
     <div className="p-6 bg-gradient-to-b from-gray-50 to-white min-h-screen">
@@ -176,11 +212,14 @@ const DeliveredLoads: React.FC = () => {
 
               <div className="border-t border-gray-100 p-4 bg-gray-50">
                 <button
-                  onClick={() =>
-                    setSelectedLoad(
-                      selectedLoad === load.id_load ? null : load.id_load
-                    )
-                  }
+                  onClick={() => {
+                    if (selectedLoad !== load.id_load) {
+                      setSelectedLoad(load.id_load);
+                      fetchDocuments(load.id_load); // Fetch documents when selected
+                    } else {
+                      setSelectedLoad(null);
+                    }
+                  }}
                   className="w-full flex items-center justify-between text-gray-700 hover:text-teal-600 transition-colors"
                 >
                   <span className="text-sm font-medium">View Documents</span>
@@ -202,18 +241,36 @@ const DeliveredLoads: React.FC = () => {
                       className="overflow-hidden"
                     >
                       <div className="mt-3 space-y-2">
-                        {(load.documents || []).map((doc, i) => (
-                          <div
-                            key={i}
-                            className="flex items-center gap-2 p-2 bg-white rounded-lg border border-gray-200"
-                          >
-                            <FileText size={16} className="text-gray-500" />
-                            <span className="text-sm text-gray-700">{doc}</span>
-                            <button className="ml-auto text-xs text-teal-600 hover:text-teal-800 font-medium">
-                              Download
-                            </button>
-                          </div>
-                        ))}
+                        {loadDocuments[load.id_load] ? (
+                          <>
+                            {loadDocuments[load.id_load]?.bol_document && (
+                              <div className="flex items-center gap-2 p-2 bg-white rounded-lg border border-gray-200">
+                                <FileText size={16} className="text-gray-500" />
+                                <span className="text-sm text-gray-700">
+                                  {loadDocuments[load.id_load]?.bol_document}
+                                </span>
+                                <button className="ml-auto text-xs text-teal-600 hover:text-teal-800 font-medium">
+                                  Download
+                                </button>
+                              </div>
+                            )}
+                            {loadDocuments[load.id_load]?.lumper_document && (
+                              <div className="flex items-center gap-2 p-2 bg-white rounded-lg border border-gray-200">
+                                <FileText size={16} className="text-gray-500" />
+                                <span className="text-sm text-gray-700">
+                                  {loadDocuments[load.id_load]?.lumper_document}
+                                </span>
+                                <button className="ml-auto text-xs text-teal-600 hover:text-teal-800 font-medium">
+                                  Download
+                                </button>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <p className="text-gray-500">
+                            No documents available
+                          </p>
+                        )}
                       </div>
                     </motion.div>
                   )}

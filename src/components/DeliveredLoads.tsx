@@ -294,7 +294,7 @@ const DeliveredLoads: React.FC = () => {
                                   }
                                   className="ml-auto text-xs text-teal-600 hover:text-teal-800 font-medium"
                                 >
-                                  Download
+                                  Preview
                                 </button>
                               </div>
                             )}

@@ -38,31 +38,14 @@ const DeliveredLoads: React.FC = () => {
     [key: number]: Document | null;
   }>({});
 
-  const handleDownload = async (fileUrl: string, fileName: string) => {
-    if (!fileUrl) return;
-
-    try {
-      const token = localStorage.getItem("driverToken");
-      const response = await axios.get(fileUrl, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        responseType: "blob",
-      });
-
-      const blob = new Blob([response.data]);
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = downloadUrl;
-      link.setAttribute("download", fileName);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(downloadUrl);
-    } catch (error) {
-      console.error("Error downloading file:", error);
-      alert("Failed to download file");
-    }
+  const handleDownload = (fileUrl: string, fileName: string) => {
+    const link = document.createElement("a");
+    link.href = fileUrl;
+    link.download = fileName;
+    link.target = "_blank";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   };
 
   useEffect(() => {
@@ -285,7 +268,7 @@ const DeliveredLoads: React.FC = () => {
                                   }
                                   className="ml-auto text-xs text-teal-600 hover:text-teal-800 font-medium"
                                 >
-                                  Download
+                                  Preview
                                 </button>
                               </div>
                             )}

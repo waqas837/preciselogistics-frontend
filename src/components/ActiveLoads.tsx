@@ -15,6 +15,7 @@ import { backendUrl } from "../../lib/apiUrl";
 import { startDriverTracking } from "../Functions/startDriverTracking";
 import { stopDriverTracking } from "../Functions/stopDriverTracking";
 import toast, { Toaster } from "react-hot-toast";
+import LocationPermissionModal from "./LocationPermissionModal";
 
 interface Load {
   id_load: number;
@@ -97,7 +98,9 @@ const ActiveLoads = () => {
         // ✅ Start tracking only if there is an active load
         const activeLoad = pendingLoads.find(
           (load: any) =>
-            load.status === "Dispatched" || load.status === "In Progress"
+            load.status === "Dispatched" ||
+            load.status === "In Progress" ||
+            load.status === "Pending"
         );
 
         if (activeLoad && driverId && token) {
@@ -161,7 +164,8 @@ const ActiveLoads = () => {
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
-      <Toaster/>
+      <Toaster />
+      <LocationPermissionModal />
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">Active Loads</h2>
         <span className="text-sm text-gray-500">

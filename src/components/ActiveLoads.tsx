@@ -7,6 +7,7 @@ import {
   Truck,
   CheckCircle,
   CreditCard,
+  Upload,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -16,6 +17,7 @@ import { startDriverTracking } from "../Functions/startDriverTracking";
 import { stopDriverTracking } from "../Functions/stopDriverTracking";
 import toast, { Toaster } from "react-hot-toast";
 import LocationPermissionModal from "./LocationPermissionModal";
+import UploadDocsModal from "./Modals/UploadDocsModal";
 
 interface Load {
   id_load: number;
@@ -65,6 +67,8 @@ const ActiveLoads = () => {
   const [error, setError] = useState<string | null>(null);
   const [dueAmount, setDueAmount] = useState<number | null>(null);
   const [rateLoading, setRateLoading] = useState<boolean>(false);
+  // setShowModalDocs
+  const [showModalDocs, setShowModalDocs] = useState(false);
   const navigate = useNavigate();
   const trackingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
     null
@@ -162,10 +166,21 @@ const ActiveLoads = () => {
     setRateLoading(false);
   };
 
+  const uploadDocsHandler = (load: Load) => {
+    setSelectedLoad(load);
+    setShowOptions(null);
+    setShowModalDocs(true);
+  };
+
   return (
     <div className="space-y-6 p-4 sm:p-6">
       <Toaster />
       <LocationPermissionModal />
+      <UploadDocsModal
+        showModal={showModalDocs}
+        setShowModal={setShowModalDocs}
+        currentLoad={selectedLoad}
+      />
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">Active Loads</h2>
         <span className="text-sm text-gray-500">
@@ -236,7 +251,14 @@ const ActiveLoads = () => {
                       className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-2 text-sm"
                     >
                       <CreditCard size={16} className="text-gray-500" />
-                      Payment
+                      Details
+                    </button>
+                    <button
+                      onClick={() => uploadDocsHandler(load)}
+                      className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-2 text-sm"
+                    >
+                      <Upload size={16} className="text-gray-500" />
+                      Upload Docs
                     </button>
                   </motion.div>
                 )}

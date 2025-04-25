@@ -590,14 +590,14 @@ const LoadDetail = () => {
                       </div>
                     </div>
                   </div>
-
-                  <button
+                {/* Dropdown menu */}
+                  {/* <button
                     className="absolute top-6 right-6 text-gray-500 hover:text-gray-800 hover:bg-gray-100 p-2 rounded-full transition-colors"
                     onClick={() => toggleOptionsMenu(index, val.id_load_stop)}
                     aria-label="More options"
                   >
                     <MoreVertical size={20} />
-                  </button>
+                  </button> */}
 
                   {/* Options Menu */}
                   <AnimatePresence>

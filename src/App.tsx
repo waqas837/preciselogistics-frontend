@@ -6,7 +6,7 @@ import {
   Navigate,
 } from "react-router-dom";
 
-import { Truck, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import SignUp from "./components/SignUp";
 import Login from "./components/Login";
 import ActiveLoads from "./components/ActiveLoads";
@@ -16,6 +16,8 @@ import CreateStopLoad from "./components/CreateStopLoad";
 import Sidebar from "./components/Sidebar";
 import LoadDetail from "./components/LoadDetail";
 import CreateBroker from "./components/CreateBroker";
+
+// Import logo image - make sure you have this file in your assets folder
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = React.useState(() => {
@@ -91,21 +93,38 @@ function App() {
         )}
 
         <div className="flex-1">
-          <header className="bg-gradient-to-r from-teal-600 to-teal-500 text-white px-6 py-4 shadow-md sticky top-0 z-20">
-            <div className="container mx-auto flex items-center justify-between">
-              <div className="flex items-center gap-3">
+          <header className="bg-gradient-to-r from-teal-600 to-teal-500 shadow-lg sticky top-0 z-20">
+            <div className="container mx-auto px-4">
+              <div className="flex items-center justify-between h-16">
+                <div className="flex items-center space-x-4">
+                  {isAuthenticated && (
+                    <button
+                      onClick={toggleSidebar}
+                      className="p-2 rounded-full bg-teal-700 hover:bg-teal-800 transition-colors text-white focus:outline-none focus:ring-2 focus:ring-white"
+                    >
+                      {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
+                    </button>
+                  )}
+                  <div className="flex items-center">
+                    {/* Logo with white background circle for contrast */}
+                    <div className="bg-white p-1 rounded-md">
+                      <img
+                        src={"logo.png"}
+                        alt="TruckDriver Logo"
+                        className="h-8 w-auto"
+                      />
+                    </div>
+                    <h1 className="text-xl font-bold text-white tracking-wide ml-3 hidden sm:block">
+                      TruckDriver PWA
+                    </h1>
+                  </div>
+                </div>
+
                 {isAuthenticated && (
-                  <button
-                    onClick={toggleSidebar}
-                    className="p-2 rounded-xl bg-teal-700 hover:bg-teal-800 transition-colors"
-                  >
-                    {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
-                  </button>
+                  <div className="hidden md:block">
+                    {/* You can add navbar links here if needed */}
+                  </div>
                 )}
-                <Truck size={26} className="text-white" />
-                <h1 className="text-2xl font-semibold tracking-wide">
-                  TruckDriver PWA
-                </h1>
               </div>
             </div>
           </header>

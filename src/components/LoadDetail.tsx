@@ -411,7 +411,29 @@ const LoadDetail = () => {
           setloadDetails([]);
           return;
         }
+        // let mockupData: any = [
+        //   {
+        //     id_load_stop: "278",
+        //     stop_type: "Pickup",
+        //     address: "3553 fowler st fort myers, fl 33901",
+        //     date_stop: "03/19/2025",
+        //     time_note: "9am",
+        //     bol_document: "",
+        //     lumper_document: "",
+        //   },
+        //   {
+        //     id_load_stop: "279",
+        //     stop_type: "Delivery",
+        //     address: "1234 w 5th ave new york, ny ",
+        //     date_stop: "03/22/2025",
+        //     time_note: "5PM",
+        //     bol_document: "",
+        //     lumper_document: "",
+        //   },
+        // ];
         setloadDetails(response.data);
+        // setloadDetails(mockupData);
+     
       } catch (err) {
         console.error("Failed to fetch loads", err);
       }
@@ -590,7 +612,7 @@ const LoadDetail = () => {
                       </div>
                     </div>
                   </div>
-                {/* Dropdown menu */}
+                  {/* Dropdown menu */}
                   {/* <button
                     className="absolute top-6 right-6 text-gray-500 hover:text-gray-800 hover:bg-gray-100 p-2 rounded-full transition-colors"
                     onClick={() => toggleOptionsMenu(index, val.id_load_stop)}

@@ -93,7 +93,7 @@ const ActiveLoads = () => {
         // Filter for loads that are either pending or dispatched (active)
         const pendingLoads = response.data.filter(
           (load: any) =>
-            load.status === "Pending" ||
+            load.status === "Pickup Pending" ||
             load.status === "Dispatched" ||
             load.status === "In Progress"
         );
@@ -104,7 +104,7 @@ const ActiveLoads = () => {
           (load: any) =>
             load.status === "Dispatched" ||
             load.status === "In Progress" ||
-            load.status === "Pending"
+            load.status === "Pickup Pending"
         );
 
         if (activeLoad && driverId && token) {

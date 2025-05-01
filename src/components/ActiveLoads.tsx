@@ -8,6 +8,7 @@ import {
   CheckCircle,
   CreditCard,
   Upload,
+  Check,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -33,6 +34,9 @@ interface Load {
   due_amount?: number;
 }
 
+
+// updateLoadStatus
+
 const updateLoadStatus = async (idLoad: any) => {
   const token = localStorage.getItem("driverToken"); // Replace with actual JWT token
 
@@ -52,6 +56,7 @@ const updateLoadStatus = async (idLoad: any) => {
 
     console.log("Response:", response.data);
     toast.success("Load marked as completed.");
+    window.location.reload();
   } catch (error) {
     toast.error("Internal server error.");
     console.error("Error:", error);
@@ -73,9 +78,12 @@ const ActiveLoads = () => {
   const trackingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
     null
   );
-
+  // track bol doc and lumper doc
+  const [bolDoc, setBolDoc] = useState<string | null>(null);
+  const [lumperDoc, setLumperDoc] = useState<string | null>(null);
   useEffect(() => {
     const fetchLoads = async () => {
+      // /load-stops/
       setLoading(true);
       const token = localStorage.getItem("driverToken");
       const driverId = localStorage.getItem("driverId");
@@ -89,23 +97,72 @@ const ActiveLoads = () => {
             },
           }
         );
-
+        // let mockdata: any = [
+        //   {
+        //     id_load: "118",
+        //     load_number: "1234567898",
+        //     broker_name: "COYOTE LOGISTICS",
+        //     status: "Pickup Pending",
+        //     pickup_address: "3553 fowler st fort myers, fl 33901",
+        //     date_pickup: "03/19/2025",
+        //     time_pickup: "9am",
+        //     delivery_address: "1234 w 5th ave new york, ny ",
+        //     date_delivery: "03/22/2025",
+        //     time_delivery: "5PM",
+        //   },
+        //   {
+        //     id_load: "115",
+        //     load_number: "1234567",
+        //     broker_name: "COYOTE LOGISTICS",
+        //     status: "Pickup Pending",
+        //     pickup_address:
+        //       "10041 Daniels Parkway,  Fort Myers,  FL 33913,  USA",
+        //     date_pickup: "03/21/2025",
+        //     time_pickup: "8am - 10am",
+        //     delivery_address:
+        //       "956 Northwest 10th Avenue,  Miami,  FL 33136,  USA",
+        //     date_delivery: "03/24/2025",
+        //     time_delivery: "anytime",
+        //   },
+        // ];
         // Filter for loads that are either pending or dispatched (active)
         const pendingLoads = response.data.filter(
           (load: any) =>
+            load.status === "Pending" ||
             load.status === "Pickup Pending" ||
             load.status === "Dispatched" ||
+            load.status === "On its way" ||
+            load.status === "On Its way" ||
+            load.status === "On Its Way" ||
             load.status === "In Progress"
         );
+        // const pendingLoads = mockdata.filter(
+        //   (load: any) =>
+        //     load.status === "Pickup Pending" ||
+        //     load.status === "Dispatched" ||
+        //     load.status === "In Progress"
+        // );
         setLoads(pendingLoads);
 
         // ✅ Start tracking only if there is an active load
-        const activeLoad = pendingLoads.find(
+        const activeLoad = response.data.find(
           (load: any) =>
             load.status === "Dispatched" ||
             load.status === "In Progress" ||
-            load.status === "Pickup Pending"
+            load.status === "Pickup Pending" ||
+            load.status === "Pending" ||
+            load.status === "On its way" ||
+            load.status === "On Its way" ||
+            load.status === "On Its Way" ||
+            load.status === "In Progress"
         );
+
+        // const activeLoad = mockdata.find(
+        //   (load: any) =>
+        //     load.status === "Dispatched" ||
+        //     load.status === "In Progress" ||
+        //     load.status === "Pickup Pending"
+        // );
 
         if (activeLoad && driverId && token) {
           // Start location tracking only for the active load
@@ -172,6 +229,34 @@ const ActiveLoads = () => {
     setShowModalDocs(true);
   };
 
+  const dropdownCheckPlusApiHandler = async (
+    e: React.MouseEvent<HTMLButtonElement>,
+    load: Load
+  ) => {
+    e.stopPropagation();
+    setShowOptions((prev) => (prev === load.id_load ? null : load.id_load));
+    // we have call an api to get the load details
+    const token = localStorage.getItem("driverToken");
+    try {
+      const { data } = await axios.get(
+        `${backendUrl}/load-stops/${load.id_load}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      let bol_doc = data[1].bol_document;
+      let lumper_doc = data[1].lumper_document;
+      setBolDoc(bol_doc);
+      setLumperDoc(lumper_doc);
+      console.log("data", data);
+      console.log("data we may need", bol_doc, lumper_doc);
+
+    } catch (err) {
+      console.error("Failed to fetch loads");
+    }
+  };
   return (
     <div className="space-y-6 p-4 sm:p-6">
       <Toaster />
@@ -216,10 +301,8 @@ const ActiveLoads = () => {
                 </span>
                 <button
                   onClick={(e) => {
-                    e.stopPropagation();
-                    setShowOptions(
-                      showOptions === load.id_load ? null : load.id_load
-                    );
+                    dropdownCheckPlusApiHandler(e, load);
+
                   }}
                   className="p-1 rounded-full hover:bg-gray-100 transition-colors"
                 >
@@ -253,13 +336,23 @@ const ActiveLoads = () => {
                       <CreditCard size={16} className="text-gray-500" />
                       Details
                     </button>
-                    <button
-                      onClick={() => uploadDocsHandler(load)}
+
+                    {/* It is necassary to upload the documents. else mark as delivery buttion will be disabled */}
+                    {bolDoc && lumperDoc ? <button
+                      onClick={() => {
+                        updateLoadStatus(load.id_load);
+                      }}
                       className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-2 text-sm"
                     >
-                      <Upload size={16} className="text-gray-500" />
-                      Upload Docs
-                    </button>
+                      <Check size={16} className="text-gray-500" />
+                      Mark as Delivered
+                    </button> : <button
+                      disabled={true}
+                      className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-2 text-sm"
+                    >
+                      <Check size={16} className="text-gray-300" />
+                      <p className="text-gray-300">Mark as Delivered</p>
+                    </button>}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -300,8 +393,8 @@ const ActiveLoads = () => {
                 </div>
               </div>
             </div>
-
-            <button
+            {/* mark as deliverd has been ccommented so find a way to mark as delivered */}
+            {/* <button
               onClick={() => {
                 updateLoadStatus(load.id_load);
               }}
@@ -309,7 +402,18 @@ const ActiveLoads = () => {
             >
               <CheckCircle size={18} />
               <span>Mark as Delivered</span>
+            </button> */}
+            <button
+              onClick={() => uploadDocsHandler(load)}
+              className="mt-6 w-full bg-gradient-to-r from-teal-600 to-emerald-600 text-white py-3 px-4 rounded-xl hover:from-teal-700 hover:to-emerald-700 transition-all shadow-md flex items-center justify-center gap-2"
+            >
+              <Upload size={16} className="text-white" />
+              <span>Upload Documents</span>
             </button>
+
+
+
+
           </motion.div>
         ))}
       </div>

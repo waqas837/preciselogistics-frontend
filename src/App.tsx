@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -16,6 +16,10 @@ import CreateStopLoad from "./components/CreateStopLoad";
 import Sidebar from "./components/Sidebar";
 import LoadDetail from "./components/LoadDetail";
 import CreateBroker from "./components/CreateBroker";
+import axios from "axios";
+import { backendUrl } from "../lib/apiUrl";
+import { startDriverTracking } from "./Functions/startDriverTracking";
+import { stopDriverTracking } from "./Functions/stopDriverTracking";
 
 // Import logo image - make sure you have this file in your assets folder
 
@@ -25,6 +29,57 @@ function App() {
     return Boolean(localStorage.getItem("driverToken"));
   });
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
+  const trackingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+    null
+  );
+
+  // Track the driver when they have active loads
+  // To track the driver, we need to check if the driverId and token are available in localStorage
+  useEffect(() => {
+    const driverId = localStorage.getItem("driverId");
+    const token = localStorage.getItem("driverToken");
+
+    if (!driverId || !token) return; // Don't proceed if either is missing
+
+    const fetchLoads = async () => {
+      try {
+        const response = await axios.get(
+          `${backendUrl}/loads-on/drivers/${driverId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        const activeLoad = response.data.find(
+          (load: any) =>
+            ["Dispatched", "In Progress", "Pickup Pending", "Pending",
+              "On its way", "On Its way", "On Its Way"].includes(load.status)
+        );
+
+        if (activeLoad) {
+          const intervalId = startDriverTracking(Number(driverId), token);
+          trackingIntervalRef.current = intervalId;
+        } else {
+          console.warn("No active load to track");
+        }
+      } catch (err) {
+        console.log("Failed to fetch loads");
+      }
+    };
+
+    fetchLoads();
+
+    return () => {
+      if (trackingIntervalRef.current) {
+        stopDriverTracking(trackingIntervalRef.current);
+      }
+    };
+  }, [localStorage.getItem("driverId"), localStorage.getItem("driverToken")]);
+
+
+
 
   const handleLogin = () => {
     setIsAuthenticated(true);
@@ -57,7 +112,7 @@ function App() {
       localStorage.setItem("device-uuid", deviceId);
     }
 
-    return () => {};
+    return () => { };
   }, []);
 
   const handleLogout = () => {

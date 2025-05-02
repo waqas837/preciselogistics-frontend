@@ -75,9 +75,7 @@ const ActiveLoads = () => {
   // setShowModalDocs
   const [showModalDocs, setShowModalDocs] = useState(false);
   const navigate = useNavigate();
-  const trackingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
-    null
-  );
+
   // track bol doc and lumper doc
   const [bolDoc, setBolDoc] = useState<string | null>(null);
   const [lumperDoc, setLumperDoc] = useState<string | null>(null);
@@ -144,33 +142,9 @@ const ActiveLoads = () => {
         // );
         setLoads(pendingLoads);
 
-        // ✅ Start tracking only if there is an active load
-        const activeLoad = response.data.find(
-          (load: any) =>
-            load.status === "Dispatched" ||
-            load.status === "In Progress" ||
-            load.status === "Pickup Pending" ||
-            load.status === "Pending" ||
-            load.status === "On its way" ||
-            load.status === "On Its way" ||
-            load.status === "On Its Way" ||
-            load.status === "In Progress"
-        );
 
-        // const activeLoad = mockdata.find(
-        //   (load: any) =>
-        //     load.status === "Dispatched" ||
-        //     load.status === "In Progress" ||
-        //     load.status === "Pickup Pending"
-        // );
 
-        if (activeLoad && driverId && token) {
-          // Start location tracking only for the active load
-          const intervalId = startDriverTracking(Number(driverId), token);
-          trackingIntervalRef.current = intervalId;
-        } else {
-          console.warn("No active load to track");
-        }
+
       } catch (err) {
         // setError("Failed to fetch loads");
       } finally {
@@ -180,12 +154,7 @@ const ActiveLoads = () => {
 
     fetchLoads();
 
-    // ✅ Stop tracking on unmount
-    return () => {
-      if (trackingIntervalRef.current) {
-        stopDriverTracking(trackingIntervalRef.current);
-      }
-    };
+
   }, []);
 
   const handleViewRate = async (load: Load) => {

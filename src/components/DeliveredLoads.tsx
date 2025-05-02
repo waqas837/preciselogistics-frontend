@@ -1,22 +1,22 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
 import {
-  MapPin,
-  Calendar,
   DollarSign,
   CheckCircle,
   Truck,
-  ArrowRight,
   FileText,
+  ExternalLink
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { backendUrl } from "../../lib/apiUrl";
+import { Link } from "react-router-dom";
 
 interface Load {
   id_load: number;
   load_number: string;
   pickup_address: string;
   delivery_address: string;
+  date_pickup: string;
+  time_pickup: string;
   date_delivery: string;
   time_delivery: string;
   broker_name: string;
@@ -29,24 +29,10 @@ interface Document {
   lumper_document: string;
 }
 
-const DeliveredLoads: React.FC = () => {
+const DeliveredLoads = () => {
   const [loads, setLoads] = useState<Load[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [selectedLoad, setSelectedLoad] = useState<number | null>(null);
-  const [loadDocuments, setLoadDocuments] = useState<{
-    [key: number]: Document | null;
-  }>({});
-
-  const handleDownload = (fileUrl: string, fileName: string) => {
-    const link = document.createElement("a");
-    link.href = fileUrl;
-    link.download = fileName;
-    link.target = "_blank";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-  };
 
   useEffect(() => {
     const fetchDeliveredLoads = async () => {
@@ -56,7 +42,8 @@ const DeliveredLoads: React.FC = () => {
       try {
         const driverId = localStorage.getItem("driverId");
         const token = localStorage.getItem("driverToken");
-        const response = await axios.get(
+
+        const response = await fetch(
           `${backendUrl}/loads-delivered/drivers/${driverId}`,
           {
             headers: {
@@ -64,13 +51,21 @@ const DeliveredLoads: React.FC = () => {
             },
           }
         );
-        if (response.data && response.data.length > 0) {
-          setLoads(response.data);
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch data");
+        }
+
+        const data = await response.json();
+
+        if (data && data.length > 0) {
+          setLoads(data);
         } else {
           setError("No delivered loads found");
         }
-      } catch (err: any) {
+      } catch (err) {
         setError("Error fetching data");
+        console.error(err);
       } finally {
         setLoading(false);
       }
@@ -78,30 +73,6 @@ const DeliveredLoads: React.FC = () => {
 
     fetchDeliveredLoads();
   }, []);
-
-  const fetchDocuments = async (loadId: number) => {
-    try {
-      const token = localStorage.getItem("driverToken");
-      const response = await axios.get(`${backendUrl}/load-stops/${loadId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (response.data) {
-        const documents = response.data.reduce(
-          (acc: Document, current: any) => {
-            acc.bol_document = current.bol_document || "";
-            acc.lumper_document = current.lumper_document || "";
-            return acc;
-          },
-          { bol_document: "", lumper_document: "" }
-        );
-        setLoadDocuments((prev) => ({ ...prev, [loadId]: documents }));
-      }
-    } catch (err) {
-      console.error("Error fetching documents:", err);
-    }
-  };
 
   return (
     <div className="p-6 bg-gradient-to-b from-gray-50 to-white min-h-screen">
@@ -131,183 +102,69 @@ const DeliveredLoads: React.FC = () => {
         {loading && <p className="text-gray-600">Loading...</p>}
         {error && <p className="text-red-600">{error}</p>}
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2">
           {loads.map((load, index) => (
             <motion.div
               key={load.id_load}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.1 }}
-              className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow border border-gray-100 overflow-hidden"
+              className="bg-white rounded-lg shadow-md border border-gray-100 overflow-hidden"
             >
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex items-center gap-2">
-                    <div className="p-2 bg-teal-50 rounded-lg text-teal-600">
-                      <Truck size={18} />
-                    </div>
-                    <h3 className="text-lg font-semibold text-gray-800">
-                      Load #{load.load_number}
-                    </h3>
-                  </div>
-                  <span className="flex items-center gap-1 text-green-600 bg-green-50 px-2.5 py-1 rounded-full text-xs font-medium">
-                    <CheckCircle size={14} />
-                    <span>Delivered</span>
-                  </span>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 bg-blue-50 rounded-lg text-blue-600 mt-0.5">
-                      <MapPin size={18} />
-                    </div>
+              <div className="p-4">
+                <div className="space-y-3">
+                  {/* Header with load number and details link */}
+                  <div className="flex justify-between items-center">
                     <div>
-                      <p className="text-xs text-gray-500 uppercase tracking-wider">
-                        Pickup
-                      </p>
-                      <p className="font-medium text-gray-800">
-                        {load.pickup_address}
-                      </p>
+                      <div className="text-gray-500 text-xs">LOAD NUMBER:</div>
+                      <div className="text-teal-700 font-bold text-2xl">{load.load_number}</div>
                     </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 bg-green-50 rounded-lg text-green-600 mt-0.5">
-                      <MapPin size={18} />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase tracking-wider">
-                        Delivery
-                      </p>
-                      <p className="font-medium text-gray-800">
-                        {load.delivery_address}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 bg-amber-50 rounded-lg text-amber-600 mt-0.5">
-                      <Calendar size={18} />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase tracking-wider">
-                        Delivery Date
-                      </p>
-                      <p className="font-medium text-gray-800">
-                        {load.date_delivery} {load.time_delivery}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 bg-purple-50 rounded-lg text-purple-600 mt-0.5">
-                      <DollarSign size={18} />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase tracking-wider">
-                        Broker
-                      </p>
-                      <p className="font-medium text-gray-800">
-                        {load.broker_name}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-t border-gray-100 p-4 bg-gray-50">
-                <button
-                  onClick={() => {
-                    if (selectedLoad !== load.id_load) {
-                      setSelectedLoad(load.id_load);
-                      fetchDocuments(load.id_load);
-                    } else {
-                      setSelectedLoad(null);
-                    }
-                  }}
-                  className="w-full flex items-center justify-between text-gray-700 hover:text-teal-600 transition-colors"
-                >
-                  <span className="text-sm font-medium">View Documents</span>
-                  <ArrowRight
-                    size={18}
-                    className={`transition-transform ${
-                      selectedLoad === load.id_load ? "rotate-90" : ""
-                    }`}
-                  />
-                </button>
-
-                <AnimatePresence>
-                  {selectedLoad === load.id_load && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="overflow-hidden"
+                    <Link
+                      to={`/load/${load.id_load}`}
+                      className="text-teal-600 hover:text-teal-800"
+                      title="View Load Details"
                     >
-                      <div className="mt-3 space-y-2">
-                        {loadDocuments[load.id_load] ? (
-                          <>
-                            {loadDocuments[load.id_load]?.bol_document && (
-                              <div className="flex items-center gap-2 p-2 bg-white rounded-lg border border-gray-200">
-                                <FileText size={16} className="text-gray-500" />
-                                <span className="text-sm text-gray-700">
-                                  {loadDocuments[load.id_load]?.bol_document}
-                                </span>
-                                <button
-                                  onClick={() =>
-                                    handleDownload(
-                                      loadDocuments[load.id_load]
-                                        ?.bol_document || "",
-                                      `BOL_${load.load_number}.${loadDocuments[
-                                        load.id_load
-                                      ]?.bol_document
-                                        ?.split(".")
-                                        .pop()}`
-                                    )
-                                  }
-                                  className="ml-auto text-xs text-teal-600 hover:text-teal-800 font-medium"
-                                >
-                                  Preview
-                                </button>
-                              </div>
-                            )}
-                            {loadDocuments[load.id_load]?.lumper_document && (
-                              <div className="flex items-center gap-2 p-2 bg-white rounded-lg border border-gray-200">
-                                <FileText size={16} className="text-gray-500" />
-                                <span className="text-sm text-gray-700">
-                                  {loadDocuments[load.id_load]?.lumper_document}
-                                </span>
-                                <button
-                                  onClick={() =>
-                                    handleDownload(
-                                      loadDocuments[load.id_load]
-                                        ?.lumper_document || "",
-                                      `Lumper_${
-                                        load.load_number
-                                      }.${loadDocuments[
-                                        load.id_load
-                                      ]?.lumper_document
-                                        ?.split(".")
-                                        .pop()}`
-                                    )
-                                  }
-                                  className="ml-auto text-xs text-teal-600 hover:text-teal-800 font-medium"
-                                >
-                                  Preview
-                                </button>
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          <p className="text-gray-500">
-                            No documents available
-                          </p>
-                        )}
+                      <ExternalLink size={22} />
+                    </Link>
+                  </div>
+
+                  {/* Broker and status */}
+                  <div className="flex justify-between items-center">
+                    <div className="text-gray-500 text-sm">{load.broker_name}</div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-teal-500">
+                        <DollarSign size={20} />
                       </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                      <span className="bg-teal-500 text-white px-4 py-1 rounded-full text-sm">
+                        Delivered
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Pickup info */}
+                  <div className="flex items-start gap-2">
+                    <Truck size={18} className="text-teal-600 mt-1 flex-shrink-0" />
+                    <div className="flex-1">
+                      <div className="text-teal-700 font-medium text-sm">Pickup Address</div>
+                      <div className="text-gray-600 text-sm">{load.pickup_address}</div>
+                    </div>
+                    <div className="bg-teal-600 text-white text-xs px-2 py-1 rounded text-center flex-shrink-0">
+                      {load.date_pickup}<br />{load.time_pickup}
+                    </div>
+                  </div>
+
+                  {/* Delivery info */}
+                  <div className="flex items-start gap-2">
+                    <Truck size={18} fill="currentColor" className="text-teal-700 mt-1 flex-shrink-0" />
+                    <div className="flex-1">
+                      <div className="text-teal-700 font-medium text-sm">Delivery Address</div>
+                      <div className="text-gray-600 text-sm">{load.delivery_address}</div>
+                    </div>
+                    <div className="bg-teal-600 text-white text-xs px-2 py-1 rounded text-center flex-shrink-0">
+                      {load.date_delivery}<br />{load.time_delivery}
+                    </div>
+                  </div>
+                </div>
               </div>
             </motion.div>
           ))}
